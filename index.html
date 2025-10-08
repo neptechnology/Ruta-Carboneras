@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Guía mapa Carboneras & Níjar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(18, 24, 38, 0.75);
+      --text: #e8edf2;
+      --muted: #a9b3c1;
+      --accent: #58c4d7;
+      --accent-2: #81e6d9;
+      --card: #ffffff;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      --radius: 10px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* Panel superior de controles */
+    .control-bar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      z-index: 2;
+    }
+
+    .control-bar label {
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing: 0.2px;
+    }
+
+    #language-selector {
+      appearance: none;
+      padding: 8px 12px;
+      font-size: 15px;
+      color: #0f172a;
+      border-radius: 8px;
+      border: 1px solid #d0d8e3;
+      background: linear-gradient(#fff, #f7fafc);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(0, 0, 0, 0.05);
+      cursor: pointer;
+    }
+
+    /* Estilo de marcador */
+    .marker {
+      width: 56px;
+      height: 56px;
+      background-size: cover;
+      background-position: center;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: transform 80ms ease;
+      /* antes 140ms */
+      cursor: pointer;
+    }
+
+    .marker:hover,
+    .marker:focus {
+      transform: scale(1.02);
+      /* menos rebote */
+      outline: none;
+    }
+
+    /* Popups */
+    .mapboxgl-popup {
+      max-width: 360px;
+    }
+
+    .mapboxgl-popup-content {
+      padding: 12px 12px 10px 12px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .popup-title {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      color: #0f172a;
+      letter-spacing: 0.2px;
+    }
+
+    .popup-media {
+      width: 100%;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f2f5f8;
+      border: 1px solid #eef2f7;
+    }
+
+    .popup-description {
+      max-height: 180px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      padding-right: 6px;
+      font-size: 14px;
+      line-height: 1.45;
+      color: #1f2937;
+    }
+
+    .popup-description::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .popup-description::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.18);
+      border-radius: 4px;
+    }
+
+    .popup-description a {
+      color: #0b7ddc;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+
+    .popup-description a:hover {
+      color: #0a66b2;
+    }
+
+    audio,
+    video {
+      width: 100%;
+      border: none;
+      border-top: 2px solid #60c1df;
+      /* línea continua clara */
+      padding-top: 4px;
+      margin-top: 8px;
+      border-radius: 0;
+      background: transparent;
+    }
+
+    /* Toast (mensajes sutiles) */
+    .toast {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      display: none;
+      z-index: 2;
+    }
+
+    @media (max-width: 600px) {
+      .control-bar {
+        right: 12px;
+      }
+
+      .mapboxgl-popup {
+        max-width: 92vw;
+      }
+    }
+
+    #logo {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      width: 100px;
+      /* ajusta tamaño */
+      height: auto;
+      z-index: 3;
+      /* por encima del mapa */
+      pointer-events: none;
+      /* para que no interfiera con clics en el mapa */
+    }
+  </style>
+</head>
+
+<body>
+  <div class="control-bar" role="region" aria-label="Controles del mapa">
+    <label for="language-selector">Idioma</label>
+    <select id="language-selector" aria-label="Selecciona idioma">
+      <option value="es" selected>🇪🇸 Español</option>
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="cs">🇨🇿 Čeština</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="hu">🇭🇺 Magyar</option>
+    </select>
+  </div>
+
+  <div id="map" aria-label="Mapa interactivo de Carboneras y Níjar"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <img id="logo" src="img/logo.png" alt="Logo" />
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibmVwdGVjaG5vbG9neSIsImEiOiJjbWRkZW1sNzQwM2JqMm1xdzUyZWsyNXBzIn0.NqcQR3KhSFBlAKR_nvQsqw';
+
+    // Límites navegables aproximados del área
+    const bounds = [
+      [-2.360344,36.536398], // SO
+      [-1.655631,36.999845]  // NE
+    ];
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      //style: 'mapbox://styles/mapbox/standard-satellite',
+      //style: 'mapbox://styles/mapbox/outdoors-v12',
+      style: 'mapbox://styles/neptechnology/cmequ7pkw017u01pg0ng80fpk',
+      center: [-1.897802, 36.990419],
+      zoom: 14.8,
+      pitch: 64,
+      bearing: 288,
+      maxBounds: bounds
+    });
+
+
+    function scaleMarkers() {
+      const zoom = map.getZoom();
+      const baseSize = 56; // tamaño base en px
+      const scale = Math.max(0.5, Math.min(1.2, zoom / 15));
+      document.querySelectorAll('.marker').forEach(m => {
+        m.style.width = baseSize * scale + 'px';
+        m.style.height = baseSize * scale + 'px';
+      });
+    }
+
+    map.on('zoom', scaleMarkers);
+    map.on('load', () => {
+      scaleMarkers();
+    });
+
+    // Controles de mapa
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+    map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+    map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+    map.addControl(new mapboxgl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: true,
+      showUserHeading: true
+    }), 'top-right');
+
+    // Toast
+    function showToast(message, duration = 3500) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.display = 'block';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => (toast.style.display = 'none'), duration);
+    }
+
+    // Marcador de usuario (geolocalización continua)
+    let userMarker;
+    if ('geolocation' in navigator) {
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const userCoords = [longitude, latitude];
+
+          if (userMarker) {
+            userMarker.setLngLat(userCoords);
+          } else {
+            userMarker = new mapboxgl.Marker({ color: '#2563eb' })
+              .setLngLat(userCoords)
+              .setPopup(new mapboxgl.Popup({ offset: 20 }).setText('Tu ubicación'))
+              .addTo(map);
+
+            map.flyTo({ center: userCoords, zoom: 15, speed: 0.6 });
+          }
+        },
+        (error) => {
+          console.error('Error de geolocalización:', error);
+          showToast('No se pudo obtener tu ubicación. Revisa los permisos del navegador.');
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+      );
+    }
+
+    map.on('load', () => {
+      scaleMarkers();
+
+      const recorridoCosta = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [-1.945177,36.931831], //fin línea
+            [-1.931512, 36.927750],
+            [-1.904562, 36.932862],
+            [-1.889970, 36.948709],
+            [-1.891987, 36.980666],
+            [-1.899583, 36.986734],
+            [-1.897802, 36.990419] //inicio línea
+          ]
+        }
+      };
+
+      map.addSource('recorrido-costa', {
+        type: 'geojson',
+        data: recorridoCosta
+      });
+
+      map.addLayer({
+        id: 'recorrido-costa-linea',
+        type: 'line',
+        source: 'recorrido-costa',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#34eb37',
+          'line-width': 4,
+          'line-dasharray': [1, 2] // patrón: punto (0) y espacio (2)
+        }
+      });
+
+      map.addLayer({
+        id: 'flechas-texto',
+        type: 'symbol',
+        source: 'recorrido-costa', // misma fuente que tu línea
+        layout: {
+          'symbol-placement': 'line',   // coloca el símbolo siguiendo la línea
+          'symbol-spacing': 100,        // distancia entre símbolos en píxeles
+          'text-field': '<',            // el carácter que quieres mostrar
+          'text-size': 40,               // tamaño del símbolo
+          'text-rotation-alignment': 'map',
+          'text-keep-upright': false     // permite rotar según la dirección
+        },
+        paint: {
+          'text-color': '#ecf241'
+        }
+      });
+
+      map.addLayer({
+        id: 'flecha-final',
+        type: 'symbol',
+        source: 'recorrido-costa',
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 999999, // fuerza que solo haya una
+          'text-field': '<',
+          'text-size': 24,
+          'text-rotation-alignment': 'map',
+          'text-keep-upright': false
+        },
+        paint: {
+          'text-color': '#ecf241'
+        }
+      });
+    });
+
+    map.on('load', () => {
+      scaleMarkers();
+
+      const recorridoCosta2 = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [-1.897802, 36.990419], //fin línea
+            [-1.898940, 36.988208],
+            [-1.879971, 36.975353],
+            [-1.883576, 36.947748],
+            [-1.910269, 36.926069],
+            [-1.931512, 36.927750],
+             //inicio línea
+          ]
+        }
+      };
+
+      map.addSource('recorrido-costa2', {
+        type: 'geojson',
+        data: recorridoCosta2
+      });
+
+      map.addLayer({
+        id: 'recorrido-costa-linea2',
+        type: 'line',
+        source: 'recorrido-costa2',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#34eb37',
+          'line-width': 4,
+          'line-dasharray': [1, 2] // patrón: punto (0) y espacio (2)
+        }
+      });
+
+      // Flecha en medio (espaciado normal)
+      map.addLayer({
+        id: 'flechas-texto2',
+        type: 'symbol',
+        source: 'recorrido-costa2', // misma fuente que tu línea
+        layout: {
+          'symbol-placement': 'line',   // coloca el símbolo siguiendo la línea
+          'symbol-spacing': 100,        // distancia entre símbolos en píxeles
+          'text-field': '<',            // el carácter que quieres mostrar
+          'text-size': 40,               // tamaño del símbolo
+          'text-rotation-alignment': 'map',
+          'text-keep-upright': false     // permite rotar según la dirección
+        },
+        paint: {
+          'text-color': '#ecf241'
+        }
+      });
+
+      // Flecha final (espaciado enorme para que solo aparezca una)
+      map.addLayer({
+        id: 'flecha-final2',
+        type: 'symbol',
+        source: 'recorrido-costa2',
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 999999, // fuerza que solo haya una
+          'text-field': '<',
+          'text-size': 24,
+          'text-rotation-alignment': 'map',
+          'text-keep-upright': false
+        },
+        paint: {
+          'text-color': '#ecf241'
+        }
+      });
+    });
+
+    map.on('load', () => {
+      scaleMarkers();
+
+      const recorridoCosta3 = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [-1.979374, 36.900086], //fin línea
+            [-1.971552, 36.894981],
+            [-1.931512, 36.927750]//inicio línea
+          ]
+        }
+      };
+
+      map.addSource('recorrido-costa3', {
+        type: 'geojson',
+        data: recorridoCosta3
+      });
+
+      map.addLayer({
+        id: 'recorrido-costa-linea3',
+        type: 'line',
+        source: 'recorrido-costa3',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#03fcec',
+          'line-width': 4,
+          'line-dasharray': [1, 2] // patrón: punto (0) y espacio (2)
+        }
+      });
+
+      map.addLayer({
+        id: 'flechas-texto3',
+        type: 'symbol',
+        source: 'recorrido-costa3', // misma fuente que tu línea
+        layout: {
+          'symbol-placement': 'line',   // coloca el símbolo siguiendo la línea
+          'symbol-spacing': 100,        // distancia entre símbolos en píxeles
+          'text-field': '<',            // el carácter que quieres mostrar
+          'text-size': 40,               // tamaño del símbolo
+          'text-rotation-alignment': 'map',
+          'text-keep-upright': false     // permite rotar según la dirección
+        },
+        paint: {
+          'text-color': '#ecf241'
+        }
+      });
+
+      map.addLayer({
+        id: 'flecha-final3',
+        type: 'symbol',
+        source: 'recorrido-costa3',
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 999999, // fuerza que solo haya una
+          'text-field': '<',
+          'text-size': 24,
+          'text-rotation-alignment': 'map',
+          'text-keep-upright': false
+        },
+        paint: {
+          'text-color': '#ecf241'
+        }
+      });
+    });
+
+     map.on('load', () => {
+      scaleMarkers();
+
+      const recorridoCosta4 = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [-1.910269, 36.926069],
+            [-1.916784,36.921204], //fin línea
+            [-1.972625,36.888124],
+            [-1.979374, 36.900086] //inicio línea
+          ]
+        }
+      };
+
+      map.addSource('recorrido-costa4', {
+        type: 'geojson',
+        data: recorridoCosta4
+      });
+
+      map.addLayer({
+        id: 'recorrido-costa-linea4',
+        type: 'line',
+        source: 'recorrido-costa4',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#03fcec',
+          'line-width': 4,
+          'line-dasharray': [1, 2] // patrón: punto (0) y espacio (2)
+        }
+      });
+
+      // Flecha en medio (espaciado normal)
+      map.addLayer({
+        id: 'flechas-texto4',
+        type: 'symbol',
+        source: 'recorrido-costa4', // misma fuente que tu línea
+        layout: {
+          'symbol-placement': 'line',   // coloca el símbolo siguiendo la línea
+          'symbol-spacing': 100,        // distancia entre símbolos en píxeles
+          'text-field': '<',            // el carácter que quieres mostrar
+          'text-size': 40,               // tamaño del símbolo
+          'text-rotation-alignment': 'map',
+          'text-keep-upright': false     // permite rotar según la dirección
+        },
+        paint: {
+          'text-color': '#ecf241'
+        }
+      });
+
+      // Flecha final (espaciado enorme para que solo aparezca una)
+      map.addLayer({
+        id: 'flecha-final4',
+        type: 'symbol',
+        source: 'recorrido-costa4',
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 999999, // fuerza que solo haya una
+          'text-field': '<',
+          'text-size': 24,
+          'text-rotation-alignment': 'map',
+          'text-keep-upright': false
+        },
+        paint: {
+          'text-color': '#ecf241'
+        }
+      });
+    });
+
+    map.on('load', () => {
+  map.addSource('puntos-playas-calas', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.901783,36.984840] 
+          },
+          properties: {
+            nombre: 'Playa de las Martinicas'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.899658,36.962469] 
+          },
+          properties: {
+            nombre: 'Playa del Corral'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.899594,36.958817]
+          },
+          properties: {
+            nombre: 'Playa de las Salinicas'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.903907,36.942852]
+          },
+          properties: {
+            nombre: 'Cala Castillo'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.909057,36.936867]
+          },
+          properties: {
+            nombre: 'Cala de Sorbas'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.917983,36.935786]
+          },
+          properties: {
+            nombre: 'Cala Arena'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.938497,36.936832]
+          },
+          properties: {
+            nombre: 'Cueva del Pirata'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.940900,36.936352]
+          },
+          properties: {
+            nombre: 'Cala del Sol'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.956264,36.918084]
+          },
+          properties: {
+            nombre: 'Cala Puente'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.958066,36.915476]
+          },
+          properties: {
+            nombre: 'Cala Chumba'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.963581,36.908082]
+          },
+          properties: {
+            nombre: 'Cala Montoya'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.993353,36.891892]
+          },
+          properties: {
+            nombre: 'Cala Hernandez'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.004211,36.880256]
+          },
+          properties: {
+            nombre: 'Las Negras'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.003567,36.872772]
+          },
+          properties: {
+            nombre: 'Cala del Cuervo'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.005584,36.859862]
+          },
+          properties: {
+            nombre: 'Cala del Playazo'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-1.999619,36.851621]
+          },
+          properties: {
+            nombre: 'Cala del Bergantín'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.001207,36.846058]
+          },
+          properties: {
+            nombre: 'Cala de la Polacra'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.013223,36.835342]
+          },
+          properties: {
+            nombre: 'Cala del Carnaje'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.042277,36.821739]
+          },
+          properties: {
+            nombre: 'Cala de los Toros'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.050613,36.816062]
+          },
+          properties: {
+            nombre: 'Playa del Peñon Blanco'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.049240,36.812317]
+          },
+          properties: {
+            nombre: 'Isleta del Moro'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.062265,36.806115]
+          },
+          properties: {
+            nombre: 'Playa del Arco'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.062876,36.803083]
+          },
+          properties: {
+            nombre: 'Los Escullos'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.060146,36.796910]
+          },
+          properties: {
+            nombre: 'Punta del Esparto'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.063338,36.782076]
+          },
+          properties: {
+            nombre: 'Cala Tomate'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.093486,36.765025]
+          },
+          properties: {
+            nombre: 'Cala Higuera'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.106779,36.762868]
+          },
+          properties: {
+            nombre: 'San José'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.122099,36.743578]
+          },
+          properties: {
+            nombre: 'Playa de los Genoveses'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.119439,36.736288]
+          },
+          properties: {
+            nombre: 'Cala Amarilla'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.126992,36.732436]
+          },
+          properties: {
+            nombre: 'Cala Chica'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.139866,36.729581]
+          },
+          properties: {
+            nombre: 'Playas del Barronal'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.146261,36.730853]
+          },
+          properties: {
+            nombre: 'Playa de Monsul'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.152140,36.731438]
+          },
+          properties: {
+            nombre: 'Playa de la Media Luna'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.156389,36.729753]
+          },
+          properties: {
+            nombre: 'Cala Carbón'
+          }
+        },
+         {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.176859,36.724284]
+          },
+          properties: {
+            nombre: 'Cala Raja'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.188103,36.721945]
+          },
+          properties: {
+            nombre: 'Arrecife de las Sirenas'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.194755,36.725144]
+          },
+          properties: {
+            nombre: 'Cala de Corraletes'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.207243,36.738110]
+          },
+          properties: {
+            nombre: 'La Fabriquilla'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.214282,36.745848]
+          },
+          properties: {
+            nombre: 'La Almadraba de Monteleva'
+          }
+        },
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.242434,36.776722]
+          },
+          properties: {
+            nombre: 'Playa de San Miguel de Cabo de Gata'
+          }
+        },
+      ]
+    }
+  });
+
+  // Capa de texto
+  map.addLayer({
+    id: 'puntos-playas/calas',
+    type: 'symbol',
+    source: 'puntos-playas-calas',
+    layout: {
+      'text-field': ['get', 'nombre'],
+      'text-size': 14,
+      'text-anchor': 'top',
+      'text-offset': [0, 0.5]
+    },
+    paint: {
+      'text-color': '#ffffff',
+      'text-halo-color': '#000000',
+      'text-halo-width': 1
+    },
+    minzoom: 15.5, // Solo visibles a partir de este zoom
+    
+  });
+});
+    // Datos
+    const Puntos = [
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/salida.png',
+        videoUrl: 'video/salida.mp4',
+        lnglat: [-1.897802, 36.990419],
+        nombre: {
+          es: 'Salida: Puerto de Carboneras',
+          en: 'Start: Port of Carboneras',
+          fr: 'Départ : Port de Carboneras',
+          cs: 'Odjezd: Přístav Carboneras',
+          de: 'Start: Hafen von Carboneras',
+          hu: 'Indulás: Carboneras kikötő'
+        },
+        description: {
+          es: `textos/salida-es.html`,
+          en: `textos/salida-en.html`,
+          fr: `textos/salida-fr.html`,
+          cs: `textos/salida-cs.html`,
+          de: `textos/salida-de.html`,
+          hu: `textos/salida-hu.html`
+        },
+        audioUrl: { es: 'audio/salida-es.mp3', en: 'audio/salida-en.mp3', fr: 'audio/salida-fr.mp3', cs:'audio/salida-cs.mp3', de: `audio/salida-de.mp3`, hu: `audio/salida-hu.mp3`}
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/isla.png',
+        videoUrl: 'video/isla.mp4',
+        lnglat: [-1.885625, 36.992776],
+        nombre: {
+          es: 'Isla de San Andrés',
+          en: 'San Andrés Island',
+          fr: 'Île de San Andrés',
+          cs: 'Ostrov San Andrés',
+          de: `Insel San Andrés`,
+          hu: `San Andrés-sziget`
+        },
+        description: {
+          es: `textos/isla-es.html`,
+          en: `textos/isla-en.html`,
+          fr: `textos/isla-fr.html`,
+          cs: `textos/isla-cs.html`,
+          de: `textos/isla-de.html`,
+          hu: `textos/isla-hu.html`
+        },
+        audioUrl: { es: 'audio/isla-es.mp3', en: 'audio/isla-en.mp3', fr: 'audio/isla-fr.mp3', cs:'audio/isla-cs.mp3', de: `audio/isla-de.mp3`, hu: `audio/isla-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/castillo.png',
+        videoUrl: 'video/castillo.mp4',
+        lnglat: [-1.894318, 36.996523],
+        nombre: {
+          es: 'Castillo de San Andrés',
+          en: 'San Andrés Castle',
+          fr: 'Château de San Andrés',
+          cs: 'Hrad San Andrés',
+          de: `Burg von San Andrés`,
+          hu: `San Andrés kastély`
+        },
+        description: {
+          es: `textos/castillo-es.html`,
+          en: `textos/castillo-en.html`,
+          fr: `textos/castillo-fr.html`,
+          cs: `textos/castillo-cs.html`,
+          de: `textos/castillo-de.html`,
+          hu: `textos/castillo-hu.html`
+        },
+        audioUrl: { es: 'audio/castillo-es.mp3', en: 'audio/castillo-en.mp3', fr: 'audio/castillo-fr.mp3', cs:'audio/castillo-cs.mp3', de: `audio/castillo-de.mp3`, hu: `audio/castillo-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/faro.png',
+        videoUrl: 'video/faro.mp4',
+        lnglat: [-1.906756, 36.94169],
+        nombre: {
+          es: 'Faro de Mesa Roldán',
+          en: 'Mesa Roldán Lighthouse',
+          fr: 'Phare de Mesa Roldán',
+          cs: 'Maják Mesa Roldán',
+          de: `Tischleuchte von  MesaRoldan`,
+          hu: `MesaRoldan lámpa`
+        },
+        description: {
+          es: `textos/faro-es.html`,
+          en: `textos/faro-en.html`,
+          fr: `textos/faro-fr.html`,
+          cs: `textos/faro-cs.html`,
+          de: `textos/faro-de.html`,
+          hu: `textos/faro-hu.html`
+        },
+        audioUrl: { es: 'audio/faro-es.mp3', en: 'audio/faro-en.mp3', fr: 'audio/faro-fr.mp3', cs: 'audio/faro-cs.mp3', de: `audio/faro-de.mp3`, hu: `audio/faro-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/torre.png',
+        videoUrl: 'video/torre.mp4',
+        lnglat: [-1.90933, 36.941622],
+        nombre: {
+          es: 'Torre de Mesa Roldán',
+          en: 'Mesa Roldán Tower',
+          fr: 'Tour de Mesa Roldán',
+          cs: 'Věž Mesa Roldán',
+          de: `Turm von  MesaRoldan`,
+          hu: `MesaRoldan torony`
+        },
+        description: {
+          es: `textos/torre-es.html`,
+          en: `textos/torre-en.html`,
+          fr: `textos/torre-fr.html`,
+          cs: `textos/torre-cs.html`,
+          de: `textos/torre-de.html`,
+          hu: `textos/torre-hu.html`
+        },
+        audioUrl: { es: 'audio/torre-es.mp3', en: 'audio/torre-en.mp3', fr: 'audio/torre-fr.mp3', cs: 'audio/torre-cs.mp3',de: `audio/torre-de.mp3`, hu: `audio/torre-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/playamuertos.png',
+        videoUrl: 'video/playamuertos.mp4',
+        lnglat: [-1.89872, 36.953514],
+        nombre: {
+          es: 'Playa de los Muertos',
+          en: 'Playa de los Muertos',
+          fr: 'Playa de los Muertos',
+          cs: 'Playa de los Muertos',
+          de: `Playa de los Muertos`,
+          hu: `Playa de los Muertos`
+        },
+        description: {
+          es: `textos/playamuertos-es.html`,
+          en: `textos/playamuertos-en.html`,
+          fr: `textos/playamuertos-fr.html`,
+          cs: `textos/playamuertos-cs.html`,
+          de: `textos/playamuertos-de.html`,
+          hu: `textos/playamuertos-hu.html`
+        },
+        audioUrl: { es: 'audio/playamuertos-es.mp3', en: 'audio/playamuertos-en.mp3', fr: 'audio/playamuertos-fr.mp3', cs: 'audio/playamuertos-cs.mp3',de: `audio/playamuertos-de.mp3`, hu: `audio/playamuertos-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/calaenmedio.png',
+        videoUrl: 'video/calaenmedio.mp4',
+        lnglat: [-1.946871, 36.932317],
+        nombre: {
+          es: 'Cala de Enmedio',
+          en: 'Cala de Enmedio',
+          fr: 'Cala de Enmedio',
+          cs: 'Cala de Enmedio',
+          de: `Cala de Enmedio`,
+          hu: `Cala de Enmedio`
+        },
+        description: {
+          es: `textos/calaenmedio-es.html`,
+          en: `textos/calaenmedio-en.html`,
+          fr: `textos/calaenmedio-fr.html`,
+          cs: `textos/calaenmedio-cs.html`,
+          de: `textos/calaenmedio-de.html`,
+          hu: `textos/calaenmedio-hu.html`
+        },
+        audioUrl: { es: 'audio/calaenmedio-es.mp3', en: 'audio/calaenmedio-en.mp3', fr: 'audio/calaenmedio-fr.mp3', cs: 'audio/calaenmedio-cs.mp3',de: `audio/calaenmedio-de.mp3`, hu: `audio/calaenmedio-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/calasanpedro.png',
+        videoUrl: 'video/calasanpedro.mp4',
+        lnglat: [-1.979374, 36.900086],
+        nombre: {
+          es: 'Cala de San Pedro',
+          en: 'Cala de San Pedro',
+          fr: 'Cala de San Pedro',
+          cs: 'Cala de San Pedro',
+          de: `Cala de San Pedro`,
+          hu: `Cala de San Pedro`
+        },
+        description: {
+          es: `textos/calasanpedro-es.html`,
+          en: `textos/calasanpedro-en.html`,
+          fr: `textos/calasanpedro-fr.html`,
+          cs: `textos/calasanpedro-cs.html`,
+          de: `textos/calasanpedro-de.html`,
+          hu: `textos/calasanpedro-hu.html`
+        },
+        audioUrl: { es: 'audio/calasanpedro-es.mp3', en: 'audio/calasanpedro-en.mp3', fr: 'audio/calasanpedro-fr.mp3', cs: 'audio/calasanpedro-cs.mp3',de: `audio/calasanpedro-de.mp3`, hu: `audio/calasanpedro-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/industrial.png',
+        videoUrl: 'video/industrial.mp4',
+        lnglat: [-1.907877, 36.976458],
+        nombre: {
+          es: 'Zona industrial de Carboneras',
+          en: 'Carboneras Industrial Area',
+          fr: 'Zone industrielle de Carboneras',
+          cs: 'Průmyslová zóna Carboneras',
+          de: `Industriegebiet Carboneras`,
+          hu: `Szénraktárak ipari övezete`
+        },
+        description: {
+          es: `textos/industrial-es.html`,
+          en: `textos/industrial-en.html`,
+          fr: `textos/industrial-fr.html`,
+          cs: `textos/industrial-cs.html`,
+          de: `textos/industrial-de.html`,
+          hu: `textos/industrial-hu.html`
+        },
+        audioUrl: { es: 'audio/industrial-es.mp3', en: 'audio/industrial-en.mp3', fr: 'audio/industrial-fr.mp3', cs: 'audio/industrial-cs.mp3',de: `audio/industrial-de.mp3`, hu: `audio/industrial-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/cargadero.png',
+        videoUrl: 'video/cargadero.mp4',
+        lnglat: [-1.929275, 36.939143],
+        nombre: {
+          es: 'Cargadero de mineral de Agua Amarga',
+          en: 'Agua Amarga Mineral Loading Dock',
+          fr: 'Quai de chargement de minerai d’Agua Amarga',
+          cs: 'Sklad rudy v Agua Amarga',
+          de: `Erzlagerplatz von Agua Amarga`,
+          hu: `Agua Amarga ércrakás`
+        },
+        description: {
+          es: `textos/cargadero-es.html`,
+          en: `textos/cargadero-en.html`,
+          fr: `textos/cargadero-fr.html`,
+          cs: `textos/cargadero-cs.html`,
+          de: `textos/cargadero-de.html`,
+          hu: `textos/cargadero-hu.html`
+        },
+        audioUrl: { es: 'audio/cargadero-es.mp3', en: 'audio/cargadero-en.mp3', fr: 'audio/cargadero-fr.mp3', cs: 'audio/cargadero-cs.mp3', de: `audio/cargadero-de.mp3`, hu: `audio/cargadero-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/aguamarga.png',
+        videoUrl: 'video/aguamarga.mp4',
+        lnglat: [-1.935512, 36.940243],
+        nombre: {
+          es: 'Agua Amarga',
+          en: 'Agua Amarga',
+          fr: 'Agua Amarga',
+          cs: 'Agua Amarga',
+          de: `Agua Amarga`,
+          hu: `Agua Amarga`
+        },
+        description: {
+          es: `textos/aguamarga-es.html`,
+          en: `textos/aguamarga-en.html`,
+          fr: `textos/aguamarga-fr.html`,
+          cs: `textos/aguamarga-cs.html`,
+          de: `textos/aguamarga-de.html`,
+          hu: `textos/aguamarga-hu.html`
+        },
+        audioUrl: { es: 'audio/aguamarga-es.mp3', en: 'audio/aguamarga-en.mp3', fr: 'audio/aguamarga-fr.mp3', cs: 'audio/aguamarga-cs.mp3', de: `audio/aguamarga-de.mp3`, hu: `audio/aguamarga-hu.mp3` }
+      },
+      {
+        iconUrl: 'img/marcador2.png',
+        imageUrl: 'img/calaplomo.png',
+        videoUrl: 'video/calaplomo.mp4',
+        lnglat: [-1.954915, 36.922761],
+        nombre: {
+          es: 'Cala del Plomo',
+          en: 'Cala del Plomo',
+          fr: 'Cala del Plomo',
+          cs: 'Cala del Plomo',
+          de: `Cala del Plomo`,
+          hu: `Cala del Plomo`
+        },
+        description: {
+          es: `textos/calaplomo-es.html`,
+          en: `textos/calaplomo-en.html`,
+          fr: `textos/calaplomo-fr.html`,
+          cs: `textos/calaplomo-cs.html`,
+          de: `textos/calaplomo-de.html`,
+          hu: `textos/calaplomo-hu.html`
+        },
+        audioUrl: { es: 'audio/calaplomo-es.mp3', en: 'audio/calaplomo-en.mp3', fr: 'audio/calaplomo-fr.mp3', cs: 'audio/calaplomo-cs.mp3', de: `audio/calaplomo-de.mp3`, hu: `audio/calaplomo-hu.mp3` }
+      }
+    ];
+
+    // Gestión de marcadores para evitar duplicados al cambiar de idioma
+    const markers = [];
+    const languageSelector = document.getElementById('language-selector');
+
+   let currentLang = 'es'; // idioma por defecto
+
+async function mediaExists(url) {
+  try {
+    const res = await fetch(url, { method: 'HEAD' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function escapeHTML(s) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+async function fetchTextNoCache(url) {
+  // Evita caché agresiva del navegador durante pruebas/edición
+  const u = new URL(url, window.location.href);
+  u.searchParams.set('_', Date.now().toString());
+  const res = await fetch(u.toString(), { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status} al cargar ${url}`);
+  return res.text();
+}
+
+async function getPopupHTML(point, lang) {
+  const title = point.nombre[lang] || point.nombre.es;
+
+  const descPath =
+    (point.description && (point.description[lang] || point.description.es)) || null;
+
+  let descHTML = '';
+  if (descPath) {
+    try {
+      const raw = await fetchTextNoCache(descPath);
+      const isHTML = /\.html?(\?|#|$)/i.test(descPath);
+      descHTML = isHTML
+        ? raw
+        : escapeHTML(raw).replace(/\r?\n/g, '<br>');
+    } catch (err) {
+      console.error(err);
+      descHTML = 'Descripción no disponible.';
+    }
+  } else {
+    descHTML = 'Descripción no disponible.';
+  }
+
+  const img = point.imageUrl
+    ? `<img class="popup-media" src="${point.imageUrl}" alt="${title}" loading="lazy" />`
+    : '';
+
+  // Evita HEAD por compatibilidad: algunos servidores no lo soportan bien
+  async function fileReachable(url) {
+    try {
+      const u = new URL(url, window.location.href);
+      u.searchParams.set('_', Date.now().toString());
+      const r = await fetch(u.toString(), { method: 'GET', cache: 'no-store' });
+      return r.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  let vid = '';
+  if (point.videoUrl && await fileReachable(point.videoUrl)) {
+    vid = `<video src="${point.videoUrl}" controls playsinline></video>`;
+  }
+
+  let aud = '';
+  const audioSrc = point.audioUrl && point.audioUrl[lang] ? point.audioUrl[lang] : '';
+  if (audioSrc && await fileReachable(audioSrc)) {
+    aud = `<audio src="${audioSrc}" controls></audio>`;
+  }
+
+  return `
+    <h3 class="popup-title">${title}</h3>
+    ${img}
+    <div class="popup-description">${descHTML}</div>
+    ${vid}
+    ${aud}
+  `;
+}
+
+
+function createMarker(point) {
+  const el = document.createElement('div');
+  el.className = 'marker';
+  el.style.backgroundImage = `url(${point.iconUrl})`;
+  el.tabIndex = 0;
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-label', point.nombre[currentLang] || point.nombre.es);
+
+  const label = document.createElement('span');
+  label.textContent = point.nombre[currentLang] || point.nombre.es;
+  label.style.position = 'absolute';
+  label.style.top = '100%';
+  label.style.left = '50%';
+  label.style.transform = 'translateX(-50%)';
+  label.style.whiteSpace = 'nowrap';
+  label.style.color = '#fff';
+  label.style.fontSize = '12px';
+  label.style.textShadow = '0 0 3px #000';
+  el.appendChild(label);
+
+  const popup = new mapboxgl.Popup({ offset: 28 }).setHTML('<div class="popup-description">Cargando…</div>');
+
+  const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+    .setLngLat(point.lnglat)
+    .setPopup(popup)
+    .addTo(map);
+
+  // Carga la descripción cuando el popup se abre
+  popup.on('open', async () => {
+    try {
+      const html = await getPopupHTML(point, currentLang);
+      popup.setHTML(html);
+    } catch (e) {
+      popup.setHTML('<div class="popup-description">No se pudo cargar el contenido.</div>');
+    }
+  });
+
+  // Accesibilidad: Enter/Space para abrir popup
+  el.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      marker.togglePopup();
+    }
+  });
+
+  return { marker, popup, el, point };
+}
+
+function initMarkers() {
+  Puntos.forEach(p => markers.push(createMarker(p)));
+}
+
+function updateLanguage(lang) {
+  currentLang = lang;
+
+  markers.forEach(async (m) => {
+    m.el.setAttribute('aria-label', m.point.nombre[lang] || m.point.nombre.es);
+    const label = m.el.querySelector('span');
+    if (label) label.textContent = m.point.nombre[lang] || m.point.nombre.es;
+
+    // Si el popup de este marcador está abierto, recárgalo en el nuevo idioma
+    if (m.popup.isOpen()) {
+      m.popup.setHTML('<div class="popup-description">Cargando…</div>');
+      const html = await getPopupHTML(m.point, lang);
+      m.popup.setHTML(html);
+    }
+  });
+}
+
+languageSelector.addEventListener('change', (e) => {
+  const lang = e.target.value;
+  updateLanguage(lang);
+
+  showToast(
+    lang === 'es' ? 'Idioma: Español' :
+    lang === 'en' ? 'Language: English' :
+    lang === 'fr' ? 'Langue : Français' :
+    lang === 'cs' ? 'Jazyk: Čeština' :
+    lang === 'de' ? 'Sprache: Deutsch' :
+  'Nyelv: Magyar',
+    1800
+  );
+});
+
+// Render inicial
+initMarkers();
+
+  </script>
+</body>
